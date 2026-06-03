@@ -5,7 +5,7 @@
 {% block content %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="/">Inicio</a></li>
     <li class="breadcrumb-item active">ROI de Marketing</li>
   </ol>
 </nav>
@@ -26,11 +26,31 @@
                         </div>
                         <div class="form-text">Distribución entre Creadores de Contenido (x1) y Anuncios Programáticos (x2).</div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Función de ROI</label>
-                        <div class="p-3 bg-light rounded font-monospace small">
-                            ROI = 4x1 + 5x2 - 0.2x1² - 0.3x2²
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Función de ROI <span class="text-muted fw-normal small">(edita los coeficientes)</span></label>
+                        <div class="p-3 bg-light rounded d-flex align-items-center flex-wrap gap-1 font-monospace" style="font-size:0.95rem; line-height:2.6">
+                            <span class="text-muted">ROI =</span>
+                            <input type="number" name="a1" step="0.01" value="{{ a1_default | default(4.0) }}"
+                                   class="form-control form-control-sm text-center fw-bold text-success"
+                                   style="width:64px;display:inline-block;border-top:none;border-left:none;border-right:none;border-radius:0;background:transparent;border-bottom:2px solid #198754;padding:0 4px;">
+                            <span>·x1  +</span>
+                            <input type="number" name="a2" step="0.01" value="{{ a2_default | default(5.0) }}"
+                                   class="form-control form-control-sm text-center fw-bold text-success"
+                                   style="width:64px;display:inline-block;border-top:none;border-left:none;border-right:none;border-radius:0;background:transparent;border-bottom:2px solid #198754;padding:0 4px;">
+                            <span>·x2  −</span>
+                            <input type="number" name="b1" step="0.001" value="{{ b1_default | default(0.2) }}"
+                                   class="form-control form-control-sm text-center fw-bold text-danger"
+                                   style="width:64px;display:inline-block;border-top:none;border-left:none;border-right:none;border-radius:0;background:transparent;border-bottom:2px solid #dc3545;padding:0 4px;">
+                            <span>·x1²  −</span>
+                            <input type="number" name="b2" step="0.001" value="{{ b2_default | default(0.3) }}"
+                                   class="form-control form-control-sm text-center fw-bold text-danger"
+                                   style="width:64px;display:inline-block;border-top:none;border-left:none;border-right:none;border-radius:0;background:transparent;border-bottom:2px solid #dc3545;padding:0 4px;">
+                            <span>·x2²</span>
+                        </div>
+                        <div class="form-text mt-1">
+                            Coeficientes lineales <span class="text-success fw-semibold">verdes</span> (rendimiento marginal) ·
+                            Coeficientes cuadráticos <span class="text-danger fw-semibold">rojos</span> (rendimientos decrecientes).
                         </div>
                     </div>
 
@@ -88,17 +108,22 @@
     function getAIAnalysis() {
         const container = document.getElementById('ia-container');
         container.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-info" role="status"></div> Analizando...</div>';
-        
-        const data = {
-            servidores: "N/A",
-            latencia: "0",
-            marketing: "ROI: {{ resultado.roi if resultado else 0 }}, Creadores: {{ resultado.creadores if resultado else 0 }}, Anuncios: {{ resultado.anuncios if resultado else 0 }}"
+
+        const aiData = {
+            presupuesto: {{ presupuesto_default }},
+            a1: {{ a1_default | default(4.0) }},
+            a2: {{ a2_default | default(5.0) }},
+            b1: {{ b1_default | default(0.2) }},
+            b2: {{ b2_default | default(0.3) }},
+            roi: {{ resultado.roi if resultado else 0 }},
+            creadores: {{ resultado.creadores if resultado else 0 }},
+            anuncios: {{ resultado.anuncios if resultado else 0 }}
         };
 
-        fetch('/analizar-ia', {
+        fetch('/analizar-ia-marketing', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'data=' + encodeURIComponent(JSON.stringify(data))
+            body: 'data=' + encodeURIComponent(JSON.stringify(aiData))
         })
         .then(r => r.text())
         .then(html => {
@@ -108,8 +133,15 @@
     }
 
     function downloadPDF() {
-        document.getElementById('pdf-datos').value = `Presupuesto Total Asignado: ${{ presupuesto_default }}M`;
-        document.getElementById('pdf-resultado').value = `ROI Máximo Estimado: {{ resultado.roi if resultado else '' }}\nInversión en Creadores (x1): {{ resultado.creadores if resultado else '' }}\nInversión en Anuncios (x2): {{ resultado.anuncios if resultado else '' }}`;
+        const pdfData = {
+            presupuesto: {{ presupuesto_default }},
+            a1: {{ a1_default | default(4.0) }},
+            a2: {{ a2_default | default(5.0) }},
+            b1: {{ b1_default | default(0.2) }},
+            b2: {{ b2_default | default(0.3) }}
+        };
+        document.getElementById('pdf-datos').value = JSON.stringify(pdfData);
+        document.getElementById('pdf-resultado').value = `roi = {{ resultado.roi if resultado else '' }}\ncreadores = {{ resultado.creadores if resultado else '' }}\nanuncios = {{ resultado.anuncios if resultado else '' }}`;
         document.getElementById('pdf-ia').value = document.getElementById('ia-analisis-input') ? document.getElementById('ia-analisis-input').value : '';
         document.getElementById('pdfForm').submit();
     }
